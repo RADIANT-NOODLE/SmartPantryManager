@@ -1,4 +1,4 @@
-package com.example.smartpantrymanager.db;   // keep whatever yours says
+package com.example.smartpantrymanager.db;
 
 import android.content.Context;
 
@@ -8,10 +8,16 @@ import androidx.room.RoomDatabase;
 
 import com.example.smartpantrymanager.model.PantryItem;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 @Database(entities = {PantryItem.class}, version = 1, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static AppDatabase instance;
+
+    /** Room refuses to run queries on the UI thread, so all DB work goes through this. */
+    public static final ExecutorService IO = Executors.newSingleThreadExecutor();
 
     public abstract PantryDao pantryDao();
 
