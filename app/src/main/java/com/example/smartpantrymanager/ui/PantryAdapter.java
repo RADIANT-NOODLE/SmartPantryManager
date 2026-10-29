@@ -1,5 +1,7 @@
 package com.example.smartpantrymanager.ui;
 
+import android.content.Context;
+import android.content.res.ColorStateList;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -7,11 +9,15 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.smartpantrymanager.R;
 import com.example.smartpantrymanager.model.PantryItem;
+import com.example.smartpantrymanager.util.ExpiryUtil;
+import com.example.smartpantrymanager.util.Formatters;
 import com.example.smartpantrymanager.util.NameNormalizer;
+import com.example.smartpantrymanager.util.Prefs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,19 +53,29 @@ public class PantryAdapter extends RecyclerView.Adapter<PantryAdapter.ViewHolder
     @Override
     public void onBindViewHolder(@NonNull ViewHolder h, int position) {
         PantryItem item = items.get(position);
+        Context ctx = h.itemView.getContext();
+
         h.name.setText(NameNormalizer.display(item.name));
+        h.quantity.setText(Formatters.quantity(item.quantity) + " " + item.unit);
 
-        String qty = item.quantity == Math.floor(item.quantity)
-                ? String.valueOf((long) item.quantity)
-                : String.valueOf(item.quantity);
-        h.quantity.setText(qty + " " + item.unit);
-
-        if (item.expiryDate == null || item.expiryDate.isEmpty()) {
+        Integer days = ExpiryUtil.daysUntil(item.expiryDate);
+        if (days == null) {
             h.expiry.setVisibility(View.GONE);
         } else {
             h.expiry.setVisibility(View.VISIBLE);
-            h.expiry.setText(h.itemView.getContext()
-                    .getString(R.string.expires_on, item.expiryDate));
+            boolean alerts = Prefs.expiryAlertsEnabled(ctx);
+            int limit = Prefs.expiryDays(ctx);
+
+            if (alerts && days < 0) {
+                h.expiry.setText(ctx.getString(R.string.expired_on, item.expiryDate));
+                h.expiry.setTextColor(ContextCompat.getColor(ctx, R.color.expiry_warning));
+            } else if (alerts && days <= limit) {
+                h.expiry.setText(ctx.getString(R.string.expires_soon, item.expiryDate));
+                h.expiry.setTextColor(ContextCompat.getColor(ctx, R.color.expiry_warning));
+            } else {
+                h.expiry.setText(ctx.getString(R.string.expires_on, item.expiryDate));
+                h.expiry.setTextColor(h.defaultExpiryColors);
+            }
         }
 
         h.itemView.setOnClickListener(v -> listener.onItemClick(item));
@@ -74,6 +90,7 @@ public class PantryAdapter extends RecyclerView.Adapter<PantryAdapter.ViewHolder
     static class ViewHolder extends RecyclerView.ViewHolder {
         final TextView name, quantity, expiry;
         final ImageButton delete;
+        final ColorStateList defaultExpiryColors;
 
         ViewHolder(@NonNull View v) {
             super(v);
@@ -81,6 +98,7 @@ public class PantryAdapter extends RecyclerView.Adapter<PantryAdapter.ViewHolder
             quantity = v.findViewById(R.id.textQuantity);
             expiry = v.findViewById(R.id.textExpiry);
             delete = v.findViewById(R.id.buttonDelete);
+            defaultExpiryColors = expiry.getTextColors();
         }
     }
 }
