@@ -121,4 +121,4 @@ As required by the assignment brief, the app uses **no** Google Maps, mapping SD
 
 ## Author
 
-*Your name, student number and module details here.*
+Levarshan Gabriel, 402413451
